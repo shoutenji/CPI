@@ -1,0 +1,14 @@
+// Gameplay Analytics System
+
+// Enable poll
+`define bRunGamePlayerPoll True
+`define	LogConfigVars	True
+
+// Poll types
+`define bPollObectiveEvent True
+`define bPollHostageRescueEvent True
+`define bPollKillEvent True
+`define bPollKilledEvent True
+`define bPollPickupEvent True
+`define bPollMarketTransactionEvent True
+`define bPollRoundStartEvent True

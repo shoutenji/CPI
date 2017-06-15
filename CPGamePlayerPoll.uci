@@ -1,0 +1,762 @@
+enum EIntevtoryType
+{
+	EIT_Weap_Glock,
+	EIT_Weap_Springfield,
+	EIT_Weap_MP5A3,
+	EIT_Weap_UMP45,
+	EIT_Weap_G3KA4,
+	EIT_Weap_Remmington870,
+	EIT_Weap_RagingBull,
+	EIT_Weap_DesertEagle,
+	EIT_Weap_Mossberg,
+	EIT_Weap_Mac10,
+	EIT_Weap_KarSR25,
+	EIT_Weap_SIG552,
+	EIT_Weap_ScarH,
+	EIT_Weap_HK121,
+	EIT_Weap_AK47,
+	EIT_Weap_KBar,
+	EIT_Weap_Hatchet,
+	EIT_Weap_HEGrenade,
+	EIT_Weap_Flashbang,
+	EIT_Ammo_Glock,
+	EIT_Ammo_Springfield,
+	EIT_Ammo_RagingBull,
+	EIT_Ammo_DesertEagle,
+	EIT_Ammo_MP5A3,
+	EIT_Ammo_UMP45,
+	EIT_Ammo_G3KA4,
+	EIT_Ammo_Remmington870,
+	EIT_Ammo_Mossberg,
+	EIT_Ammo_Mac10,
+	EIT_Ammo_KarSR25,
+	EIT_Ammo_SIG552,
+	EIT_Ammo_ScarH,
+	EIT_Ammo_HK121,
+	EIT_Ammo_AK47,
+	EIT_Armor_Head,
+	EIT_Armor_Body,
+	EIT_Armor_Leg,
+	EIT_NightVision,
+	EIT_Bomb,
+	EIT_None
+};
+
+enum EObjectiveString
+{
+	EOS_SFHackedObjective,		
+	EOS_LostRound,				
+	EOS_MercsEscaped,
+	EOS_HostagesEscaped,			
+	EOS_OppositionTerminated,		
+	EOS_BombDetonated,			
+	EOS_BombDiffused,				
+	EOS_Draw,					
+	EOS_ADMINENDROUND,			
+	EOS_LASTPLAYERSUICIDELOSS,	
+	EOS_None
+};
+
+enum EEventType
+{
+	EET_ObjectiveEvent,
+	EET_HostageRescueEvent,
+	EET_KillEvent,
+	EET_KilledEvent,
+	EET_PickupEvent,
+	EET_MarketTransactionEvent,
+	EET_RoundStartEvent
+};
+
+struct PlayerInfo
+{
+	var int PlayerID;		// Currently using CPPlayerID
+	var int TeamIndex;
+};
+
+struct InventoryBeltInfo
+{
+	var EIntevtoryType InventoryItem;
+	var int AmmoCount;				// If this inventory has ammo associated with it
+};
+
+struct PlayerInventoryInfo
+{
+	var EIntevtoryType Weapon; 					// Weapon equipped
+	var array<InventoryBeltInfo> PlayerInventory;	// All weapons and ammo at time
+	var int Wallet;								// Cash currently carried
+};
+
+struct PlayerInfoInventoryInfo
+{
+	var PlayerInfo Player;
+	var int Wallet;
+};
+
+struct RoundStartInfo
+{
+	var array<PlayerInfoInventoryInfo> PlayerRoundStartInventories;
+	var int RoundNumber;
+};
+
+struct MarketTransactionInfo
+{
+	var EIntevtoryType InventoryItem;		// Item transacted
+	var int Quantity;		// How many ammo clips if any
+};
+
+struct PickupInfo
+{
+	var bool bIsCashReward;				// If this pickup is a cash drop, otherwsie it's a weapon or bomb
+	var InventoryBeltInfo InventoryBelt;
+};
+
+struct KillInfo
+{
+	var PlayerInfo Killed;
+	var PlayerInventoryInfo KillerInventory;	// The players total inventory
+	var PlayerInventoryInfo KilledInventory;	// The players total inventory
+};
+
+//KillInfo is responsible for recording the kill event, use this event to just record the drop amount,
+struct KilledInfo
+{
+	var int DropAmount;
+};
+
+struct HostageRescueInfo
+{
+	//var int HostageID;	// Id of the hostage controller
+	var int RescuerID;	// Id of the player who rescued the hostage
+};
+
+struct PlayerEvent
+{
+	var EEventType EventType;
+	var PlayerInfo PlayerIDInfo;
+	var int RoundNumber;
+	var int Time;
+	var int WinningTeamIndex;		// Optional. Index of winning team
+	var int Amount; 				// If there is a money amount associated with this event
+	var EObjectiveString ObjectiveEvent;
+	var HostageRescueInfo HostageRescueEvent;
+	var KillInfo KillEvent;
+	var PickupInfo	PickupEvent;
+	var MarketTransactionInfo MarketTransactionEvent;
+	var KilledInfo KilledEvent;
+	var RoundStartInfo RoundStartEvent;
+};
+
+var array<PlayerEvent> PlayerEventPoll;
+var int KillMoney;
+var int WinningTeamIndex;
+
+function EIntevtoryType GetInventoryByEnum(Inventory Item, optional bool isAmmo)
+{
+	if( Item == None )
+		return EIT_None;
+	switch(Item.Class.Name)
+	{
+		case 'CPWeap_UMP45':
+			if(isAmmo)
+				return EIT_Ammo_UMP45;
+			else
+				return EIT_Weap_UMP45;
+		case 'CPWeap_SpringfieldXD45':
+			if(isAmmo)
+				return EIT_Ammo_Springfield;
+			else
+				return EIT_Weap_Springfield;
+		case 'CPWeap_SIG552':
+			if(isAmmo)
+				return EIT_Ammo_SIG552;
+			else
+				return EIT_Weap_SIG552;
+		case 'CPWeap_ScarH':
+			if(isAmmo)
+				return EIT_Ammo_ScarH;
+			else
+				return EIT_Weap_ScarH;
+		case 'CPWeap_Remington870P':
+			if(isAmmo)
+				return EIT_Ammo_Remmington870;
+			else
+				return EIT_Weap_Remmington870;
+		case 'CPWeap_RagingBull':
+			if(isAmmo)
+				return EIT_Ammo_RagingBull;
+			else
+				return EIT_Weap_RagingBull;
+		case 'CPWeap_MP5A3':
+			if(isAmmo)
+				return EIT_Ammo_MP5A3;
+			else
+				return EIT_Weap_MP5A3;
+		case 'CPWeap_Mossberg590':
+			if(isAmmo)
+				return EIT_Ammo_Mossberg;
+			else
+				return EIT_Weap_Mossberg;
+		case 'CPWeap_MAC10':
+			if(isAmmo)
+				return EIT_Ammo_Mac10;
+			else
+				return EIT_Weap_Mac10;
+		case 'CPWeap_KarSR25':
+			if(isAmmo)
+				return EIT_Ammo_KarSR25;
+			else
+				return EIT_Weap_KarSR25;
+		case 'CPWeap_HK121':
+			if(isAmmo)
+				return EIT_Ammo_HK121;
+			else
+				return EIT_Weap_HK121;
+		case 'CPWeap_Glock':
+			if(isAmmo)
+				return EIT_Ammo_Glock;
+			else
+				return EIT_Weap_Glock;
+		case 'CPWeap_G3KA4':
+			if(isAmmo)
+				return EIT_Ammo_G3KA4;
+			else
+				return EIT_Weap_G3KA4;
+		case 'CPWeap_DE':
+			if(isAmmo)
+				return EIT_Ammo_DesertEagle;
+			else
+				return EIT_Weap_DesertEagle;
+		case 'CPWeap_AK47':
+			if(isAmmo)
+				return EIT_Ammo_AK47;
+			else
+				return EIT_Weap_AK47;
+		case 'CPArmor_Leg':
+			return EIT_Armor_Leg;
+		case 'CPArmor_Head':
+			return EIT_Armor_Head;
+		case 'CPArmor_Body':
+			return EIT_Armor_Body;
+		case 'CPWeap_KaBar':
+			return EIT_Weap_KBar;
+		case 'CPWeap_HE':
+			return EIT_Weap_HEGrenade;
+		case 'CPWeap_FlashBang':
+			return EIT_Weap_Flashbang;
+		case 'CPWeap_Hatchet':
+			return EIT_Weap_Hatchet;
+		case 'CPWeap_Bomb':
+			return EIT_Bomb;
+	}
+}
+
+function EObjectiveString GetObjectiveByEnum(string Reason)
+{
+	if( Reason == "" )
+		return EOS_None;
+	switch( Reason )
+	{
+		case "Awarding 1000 for losing":
+			return EOS_LostRound;
+		case "Awarding 2000 for losing":
+			return EOS_LostRound;
+		case "Awarding 2250 for losing":
+			return EOS_LostRound;
+		case "Awarding 2500 for losing":
+			return EOS_LostRound;
+		case "Awarding 2750 for losing":
+			return EOS_LostRound;
+		case "Awarding 3000 for losing":
+			return EOS_LostRound;
+		case "Mercenaries have escaped!":
+			return EOS_MercsEscaped;
+		case "Hostages have escaped!":
+			return EOS_HostagesEscaped;
+		case "OppositionTerminated":
+			return EOS_OppositionTerminated;
+		case "Special Forces have hacked the objective!":
+			return EOS_SFHackedObjective;
+		case "BombDetonated":
+			return EOS_BombDetonated;
+		case "BombDiffused":
+			return EOS_BombDiffused;
+		case "ADMINENDROUND":
+			return EOS_ADMINENDROUND;
+		case "LASTPLAYERSUICIDELOSS":
+			return EOS_LASTPLAYERSUICIDELOSS;
+		case "Draw":
+			return EOS_Draw;
+	}
+}
+
+function CreatePlayerEvent(
+	EEventType AEventType,
+	optional int TimeRound,
+	optional int Amount,
+	optional PlayerInfo APlayerInfo,
+	optional EObjectiveString AObjectiveEvent,
+	optional HostageRescueInfo AHostageEvent,
+	optional KillInfo AKillEvent,
+	optional KilledInfo AKilledEvent,
+	optional PickupInfo APickupEvent,
+	optional MarketTransactionInfo AMarketEvent,
+	optional RoundStartInfo ARoundStartEvent)
+{
+	local PlayerEvent NewPlayerEvent;
+
+	NewPlayerEvent.Time = TimeRound;
+	NewPlayerEvent.Amount = Amount;
+	NewPlayerEvent.PlayerIDInfo = APlayerInfo;
+	NewPlayerEvent.EventType = AEventType;
+	
+	switch(AEventType)
+	{
+		case EET_ObjectiveEvent:
+			NewPlayerEvent.ObjectiveEvent = AObjectiveEvent;
+			break;
+		case EET_HostageRescueEvent:
+			NewPlayerEvent.HostageRescueEvent = AHostageEvent;
+			break;
+		case EET_KillEvent:
+			NewPlayerEvent.KillEvent = AKillEvent;
+			break;
+		case EET_PickupEvent:
+			NewPlayerEvent.PickupEvent = APickupEvent;
+			break;
+		case EET_MarketTransactionEvent:
+			NewPlayerEvent.MarketTransactionEvent = AMarketEvent;
+			break;
+		case EET_KilledEvent:
+			NewPlayerEvent.KilledEvent = AKilledEvent;
+			break;
+		case EET_RoundStartEvent:
+			NewPlayerEvent.RoundStartEvent = ARoundStartEvent;
+			break;
+	}
+	PlayerEventPoll.AddItem(NewPlayerEvent);
+}
+
+/**
+* Poll an round starting wallet amounts 
+*
+* @param		APRIs				Associated player replication infos
+* @param		Current				Round number
+* @return		void
+*/
+function PollRoundStartEvent(array<PlayerReplicationInfo> APRIs, int inCurrentRound)
+{
+	CreatePlayerEvent(EET_RoundStartEvent,,,,,,,,,, CreateRoundStartInfo(APRIs, inCurrentRound));
+}
+
+/**
+* Poll an objective completed event 
+*
+* @param		inTimeRound			Round time
+* @param		inObjectiveString		Enum representing which objective
+* @param		inAmount				Associated cash amount
+* @param		APRI					Associated player replication info
+* @return		void
+*/
+function PollObjectiveEvent(int inTimeRound, EObjectiveString inObjectiveString, optional int inAmount,
+ optional PlayerReplicationInfo APRI)
+{
+	CreatePlayerEvent(EET_ObjectiveEvent, inTimeRound, inAmount, CreatePlayerIDInfo(,APRI), inObjectiveString);
+}
+
+/**
+* Poll a hostage rescue event. Use kill event for hostage kill
+*
+* @param		inTimeRound			Round time
+* @param		APlayerController		Rescuer player controller
+* @param		AHostageController		Hostage controller
+* @param		inAmount				Associated cash amount
+* @return		void
+*/
+function PollHostageRescueEvent(int inTimeRound, Controller APlayerController, Controller AHostageController, optional int inAmount)
+{
+	CreatePlayerEvent(EET_HostageRescueEvent, inTimeRound, inAmount, CreatePlayerIDInfo(APlayerController), ,CreateHostageEvent(APlayerController, AHostageController));
+}
+
+
+/**
+* Poll a kill event 
+*
+* @param		inTimeRound		Round time
+* @param		Killer			Killer controller
+* @param		Killed			Killed controller
+* @param		inAmount			Associated cash amount
+* @return		void
+*/
+function PollKillEvent(int inTimeRound, Controller Killer, Controller Killed, optional int inAmount=-1)
+{
+	// If amount is unspecified, must calculate
+	if( inAmount==-1)
+	{
+		if(Killed.IsA('CPHostage'))
+			inAmount = HostageKillAmount;
+		else if(Killer.PlayerReplicationInfo.Team!= None && ( Killer.PlayerReplicationInfo.Team.TeamIndex == Killed.PlayerReplicationInfo.Team.TeamIndex ))
+			inAmount = TeamKillAmount;
+		else if(Killer!=Killed)
+			inAmount = KillAmount;
+		else
+			inAmount = -1;
+	}
+	CreatePlayerEvent(EET_KillEvent, inTimeRound, inAmount, CreatePlayerIDInfo(Killer), , ,CreateKillEvent(Killer, Killed));
+}
+
+/**
+* Poll a killed event 
+*
+* @param		inTimeRound		Round time
+* @param		Killer			Killer controller
+* @param		Killed			Killed controller
+* @param		DropAmount		Amount of money dropped by deceased
+* @return		void
+*/
+function PollKilledEvent(int inTimeRound, Controller Killer, Controller Killed, int DropAmount)
+{
+	CreatePlayerEvent(EET_KilledEvent, inTimeRound, DropAmount, CreatePlayerIDInfo(Killed), , , ,CreateKilledEvent(Killer, Killed, DropAmount));
+}
+
+/**
+* Poll a pickup event 
+*
+* @param		inTimeRound			Round time
+* @param		APlayerController		Associated player controller
+* @param		inbIsCashReward		Is cash reward?
+* @param		InventoryItem			Inventory item picked up
+* @param		inAmount				Associated cash amount
+* @return		void
+*/
+function PollPickupEvent(int inTimeRound, Controller APlayerController, bool inbIsCashReward, optional Inventory InventoryItem, optional int inAmount)
+{
+	CreatePlayerEvent(EET_PickupEvent, inTimeRound, inAmount, CreatePlayerIDInfo(APlayerController), , , , ,CreatePickupEvent(inbIsCashReward, CreateInventoryBelt(InventoryItem)));
+}
+
+/**
+* Poll a buy/sell market event 
+*
+* @param		inTimeRound			Round time
+* @param		APlayerController		Associated player controller
+* @param		InventoryItem			Inventory item bought/sold
+* @param		inAmount				Associated cash amount
+* @return		void
+*/
+function PollMarketTransactionEvent(int inTimeRound, Controller APlayerController, Inventory InventoryItem, optional int inAmount, optional bool isAmmo, optional int quantity)
+{
+	CreatePlayerEvent(EET_MarketTransactionEvent, inTimeRound, inAmount, CreatePlayerIDInfo(APlayerController), , , , , ,CreateMarketEvent(InventoryItem, isAmmo, quantity));
+}
+
+function PlayerInfo CreatePlayerIDInfo(optional Controller APlayerController, optional PlayerReplicationInfo APRI)
+{
+	local PlayerInfo APlayerInfo;
+	if( APlayerController != None && APlayerController.PlayerReplicationInfo != None)
+	{
+		APlayerInfo.PlayerID = CPPlayerReplicationInfo(APlayerController.PlayerReplicationInfo).CPPlayerID;
+		if(APlayerController.PlayerReplicationInfo.Team != None)
+			APlayerInfo.TeamIndex = APlayerController.PlayerReplicationInfo.Team.TeamIndex;
+		else
+			APlayerInfo.TeamIndex = -1;
+	}
+	else if( APRI != None )
+	{
+		APlayerInfo.PlayerID = CPPlayerReplicationInfo(APRI).CPPlayerID;
+		if(APRI.Team != None)
+			APlayerInfo.TeamIndex = APRI.Team.TeamIndex;
+		else
+			APlayerInfo.TeamIndex = -1;
+	}
+	else
+	{
+		APlayerInfo.PlayerID = -1;
+		APlayerInfo.TeamIndex = -1;
+	}
+	return APlayerInfo;
+}
+
+function PlayerInfoInventoryInfo CreatePlayerInfoInventoryInfo(PlayerReplicationInfo PRI)
+{
+	local PlayerInfoInventoryInfo NewPlayerInfoInventoryInfo;
+	NewPlayerInfoInventoryInfo.Player = CreatePlayerIDInfo(,PRI);
+	if(CPPlayerReplicationInfo(PRI) != None)
+		NewPlayerInfoInventoryInfo.Wallet = CPPlayerReplicationInfo(PRI).Money;
+	else
+		NewPlayerInfoInventoryInfo.Wallet = 0;
+	return NewPlayerInfoInventoryInfo;
+}
+
+function CPIJsonObject CreatePlayerInfoInventoryObject(PlayerInfoInventoryInfo inPlayerInfoInventoryInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetObject("Player", CreatePlayerIDInfoObject(inPlayerInfoInventoryInfo.Player));
+	jsonObject.SetIntValue("Wallet", inPlayerInfoInventoryInfo.Wallet);
+	return jsonObject;
+}
+
+function RoundStartInfo CreateRoundStartInfo(array<PlayerReplicationInfo> APRIs, int inRoundNumber)
+{
+	local RoundStartInfo ARoundStartEvent;
+	local PlayerInfoInventoryInfo APlayerInfoInventoryInfo;
+	local PlayerReplicationInfo PRI;
+	foreach APRIs(PRI)
+	{
+		APlayerInfoInventoryInfo = CreatePlayerInfoInventoryInfo(PRI);
+		ARoundStartEvent.PlayerRoundStartInventories.AddItem(APlayerInfoInventoryInfo);
+	}
+	ARoundStartEvent.RoundNumber = inRoundNumber;
+	return ARoundStartEvent;
+}
+
+function CPIJsonObject CreateRoundStartEventObject(RoundStartInfo inRoundStartInfo)
+{
+	local CPIJsonObject jsonObject;
+	local PlayerInfoInventoryInfo APlayerInfoInventoryInfo;
+	local array<CPIJsonObject> jsonArray;
+	jsonObject = new class'CPIJsonObject';
+	Foreach inRoundStartInfo.PlayerRoundStartInventories(APlayerInfoInventoryInfo)
+	{
+		jsonArray.AddItem(CreatePlayerInfoInventoryObject(APlayerInfoInventoryInfo));
+	}
+	jsonObject.SetArray("PlayerRoundStartAmounts", jsonArray);
+	jsonObject.SetIntValue("RoundNumber", inRoundStartInfo.RoundNumber);
+	return jsonObject;
+}
+
+function CPIJsonObject CreatePlayerIDInfoObject(PlayerInfo inPlayerIDInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetIntValue("PlayerID", inPlayerIDInfo.PlayerID);
+	jsonObject.SetIntValue("TeamIndex", inPlayerIDInfo.TeamIndex);
+	return jsonObject;
+}
+
+function InventoryBeltInfo CreateInventoryBelt(Inventory inInventory)
+{
+	local InventoryBeltInfo NewInventoryBeltInfo;
+	NewInventoryBeltInfo.InventoryItem = GetInventoryByEnum(inInventory);
+	NewInventoryBeltInfo.AmmoCount = (CPWeapon(inInventory)!=None)? CPWeapon(inInventory).GetAmmoCount() : -1;
+	return NewInventoryBeltInfo;
+}
+
+function CPIJsonObject CreateInventoryBeltObject(InventoryBeltInfo inInventoryBeltInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetStringValue("InventoryItem", String(inInventoryBeltInfo.InventoryItem));
+	jsonObject.SetIntValue("AmmoCount", inInventoryBeltInfo.AmmoCount);
+	return jsonObject;
+}
+
+function MarketTransactionInfo CreateMarketEvent(Inventory Item, optional bool isAmmo, optional int inQuantity=1)
+{
+	local MarketTransactionInfo newMarketTransactionInfo;
+	newMarketTransactionInfo.InventoryItem = GetInventoryByEnum(Item, isAmmo);
+	newMarketTransactionInfo.Quantity = inQuantity;
+	return newMarketTransactionInfo;
+}
+
+function CPIJsonObject CreateMarketEventObject(MarketTransactionInfo inMarketTransactionInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetStringValue("InventoryItem", String(inMarketTransactionInfo.InventoryItem));
+	jsonObject.SetIntValue("Quantity", inMarketTransactionInfo.Quantity);
+	return jsonObject;
+}
+
+function PickupInfo CreatePickupEvent(bool bIsCashReward, optional InventoryBeltInfo Item)
+{
+	local PickupInfo NewPickupInfo;
+	NewPickupInfo.bIsCashReward = bIsCashReward;
+	NewPickupInfo.InventoryBelt = Item;
+	return NewPickupInfo;
+}
+
+function CPIJsonObject CreatePickupEventObject(PickupInfo inPickupInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetBoolValue("bIsCashReward", inPickupInfo.bIsCashReward);
+	jsonObject.SetObject("InventoryBelt", CreateInventoryBeltObject(inPickupInfo.InventoryBelt));
+	return jsonObject;
+}
+
+function HostageRescueInfo CreateHostageEvent(Controller Rescuer, Controller Hostage)
+{
+	local HostageRescueInfo NewHostageRescueInfo;
+	//NewHostageRescueInfo.HostageID = Hostage.PlayerReplicationInfo.PlayerID;
+	NewHostageRescueInfo.RescuerID = Rescuer.PlayerReplicationInfo.PlayerID;
+	return NewHostageRescueInfo;
+}
+
+function CPIJsonObject CreateHostageEventObject(HostageRescueInfo inHostageRescueInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	//jsonObject.SetIntValue("HostageID", inHostageRescueInfo.HostageID);
+	jsonObject.SetIntValue("RescuerID", inHostageRescueInfo.RescuerID);
+	return jsonObject;
+}
+
+function PlayerInventoryInfo CreatePlayerInventoryEvent(Controller PlayerCont)
+{
+	local PlayerInventoryInfo NewPlayerInventoryInfo;
+	local Inventory InventoryItem;
+	local InventoryBeltInfo BeltItem;
+	local array<InventoryBeltInfo> Belt;
+	
+	NewPlayerInventoryInfo.Weapon = GetInventoryByEnum(PlayerCont.Pawn.Weapon);
+	NewPlayerInventoryInfo.Wallet = CPPlayerReplicationInfo(PlayerCont.PlayerReplicationInfo).Money;
+	
+	Foreach PlayerCont.Pawn.InvManager.InventoryActors(class'Inventory', InventoryItem)
+	{
+		BeltItem.InventoryItem = GetInventoryByEnum(InventoryItem);
+		BeltItem.AmmoCount = (CPWeapon(InventoryItem)!=None)? CPWeapon(InventoryItem).GetAmmoCount() : -1;
+		Belt.AddItem(BeltItem);
+	}
+	NewPlayerInventoryInfo.PlayerInventory = Belt;
+	
+	return NewPlayerInventoryInfo;
+}
+
+function CPIJsonObject CreatePlayerInventoryEventObject(PlayerInventoryInfo inPlayerInventoryInfo)
+{
+	local CPIJsonObject jsonObject;
+	local array<CPIJsonObject> jsonArray;
+	local InventoryBeltInfo Item;
+	
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetStringValue("Weapon", String(inPlayerInventoryInfo.Weapon));
+	jsonObject.SetIntValue("Wallet", inPlayerInventoryInfo.Wallet);
+	
+	Foreach inPlayerInventoryInfo.PlayerInventory(Item)
+	{
+		jsonArray.AddItem(CreateInventoryBeltObject(Item));
+	}
+	
+	jsonObject.SetArray("PlayerInventory", jsonArray);
+	return jsonObject;
+}
+
+function KillInfo CreateKillEvent(Controller KillerCont, Controller KilledCont)
+{
+	local KillInfo NewKillInfo;
+	NewKillInfo.Killed.PlayerID = KilledCont.PlayerReplicationInfo.PlayerID;
+	if(  KilledCont.PlayerReplicationInfo.Team != None )
+		NewKillInfo.Killed.TeamIndex = KilledCont.PlayerReplicationInfo.Team.TeamIndex;
+	else
+		NewKillInfo.Killed.TeamIndex = -1;
+	NewKillInfo.KillerInventory = CreatePlayerInventoryEvent(KillerCont);
+	NewKillInfo.KilledInventory = CreatePlayerInventoryEvent(KilledCont);
+	return NewKillInfo;
+}
+
+function CPIJsonObject CreateKillEventObject(KillInfo inKillInfo)
+{
+	local CPIJsonObject jsonObject, jsonObjectbuff;
+	jsonObject = new class'CPIJsonObject';
+	jsonObjectbuff = new class'CPIJsonObject';
+	jsonObjectbuff.SetIntValue("PlayerID", inKillInfo.Killed.PlayerID);
+	jsonObjectbuff.SetIntValue("TeamIndex", inKillInfo.Killed.TeamIndex);
+	jsonObject.SetObject("Killed", jsonObjectbuff);
+	jsonObject.SetObject("KillerInventory", CreatePlayerInventoryEventObject(inKillInfo.KillerInventory));
+	jsonObject.SetObject("KilledInventory", CreatePlayerInventoryEventObject(inKillInfo.KilledInventory));
+	return jsonObject;
+}
+
+function KilledInfo CreateKilledEvent(Controller Killer, Controller Killed, int inDropAmount)
+{
+	local KilledInfo NewKilledInfo;
+	NewKilledInfo.DropAmount = inDropAmount;
+	return NewKilledInfo;
+}
+
+function CPIJsonObject CreateKilledEventObject(KilledInfo inKilledInfo)
+{
+	local CPIJsonObject jsonObject;
+	jsonObject = new class'CPIJsonObject';
+	jsonObject.SetIntValue("DropAmount", inKilledInfo.DropAmount);
+	return jsonObject;
+}
+
+// Called at the end of round
+function OutputPlayerEventPoll(int inRoundNumber, optional int inWinningTeamIndex=-1)
+{
+	local PlayerEvent APlayerEvent;
+	local CPIJsonObject jsonRoot, jsonObjectbuff;
+	local array<CPIJsonObject> jsonRootArray;
+	
+	jsonRoot = new(self) class'CPIJsonObject';
+	Foreach PlayerEventPoll(APlayerEvent)
+	{
+		jsonObjectbuff = new(self) class'CPIJsonObject';
+		jsonObjectbuff.SetIntValue("Time", APlayerEvent.Time);
+		jsonObjectbuff.SetIntValue("Amount", APlayerEvent.Amount);
+		if( APlayerEvent.PlayerIDInfo.PlayerID > 0 && APlayerEvent.PlayerIDInfo.TeamIndex > -1)
+		{
+			jsonObjectbuff.SetObject("PlayerIDInfo", CreatePlayerIDInfoObject(APlayerEvent.PlayerIDInfo));
+		}
+		switch(APlayerEvent.EventType)
+		{
+			case EET_ObjectiveEvent:
+				jsonObjectbuff.SetStringValue("ObjectiveEvent", String(APlayerEvent.ObjectiveEvent));
+				break;
+			case EET_HostageRescueEvent:
+				jsonObjectbuff.SetObject("HostageRescueEvent", CreateHostageEventObject(APlayerEvent.HostageRescueEvent));
+				break;
+			case EET_KillEvent:
+				jsonObjectbuff.SetObject("KillEvent", CreateKillEventObject(APlayerEvent.KillEvent));
+				break;
+			case EET_KilledEvent:
+				jsonObjectbuff.SetObject("KilledEvent", CreateKilledEventObject(APlayerEvent.KilledEvent));
+				break;
+			case EET_PickupEvent:
+				jsonObjectbuff.SetObject("PickupEvent", CreatePickupEventObject(APlayerEvent.PickupEvent));
+				break;
+			case EET_MarketTransactionEvent:
+				jsonObjectbuff.SetObject("MarketTransactionEvent", CreateMarketEventObject(APlayerEvent.MarketTransactionEvent));
+				break;
+			case EET_RoundStartEvent:
+				jsonObjectbuff.SetObject("RoundStartEvent", CreateRoundStartEventObject(APlayerEvent.RoundStartEvent));
+				break;
+		}
+		jsonRootArray.AddItem(jsonObjectbuff);
+	}
+	jsonRoot.SetIntValue("RoundNumber", inRoundNumber);
+	jsonRoot.SetIntValue("RoundTime", WorldInfo.TimeSeconds);
+	jsonRoot.SetArray("PlayerEvents", jsonRootArray);
+	if(inWinningTeamIndex > -1)
+	{
+		jsonRoot.SetIntValue("WinningTeamIndex", inWinningTeamIndex);
+	}
+	`log("CPIPOLLOUTPUT");
+	`log(class'CPIJsonObject'.static.CPIEncodeJson(jsonRoot));
+	`log("CPIPOLLOUTPUT");
+	PlayerEventPoll.Length = 0;
+}
+
+function OutPutConfigVars()
+{
+	`if(`LogConfigVars)
+		local CPIJsonObject jsonobj;
+		jsonobj = new(self) class'CPIJsonObject';
+		jsonobj.SetBoolValue("bDropMoneyOnSuicide", bDropMoneyOnSuicide);
+		jsonobj.SetBoolValue("bTeamOnlyMoneyDropIfSuicide", bTeamOnlyMoneyDropIfSuicide);
+		jsonobj.SetIntValue("BaseMoneyDropAmount", BaseMoneyDropAmount);
+		jsonobj.SetIntValue("DropAmountTier1Min", DropAmountTier1Min);
+		jsonobj.SetIntValue("DropAmountTier1Max", DropAmountTier1Max);
+		jsonobj.SetIntValue("DropAmountTier2Max", DropAmountTier2Max);
+		jsonobj.SetIntValue("DropAmountTier1Multiplier", DropAmountTier1Multiplier);
+		jsonobj.SetIntValue("DropAmountTier2Multiplier", DropAmountTier2Multiplier);
+		jsonobj.SetIntValue("DropAmountTier3Multiplier", DropAmountTier3Multiplier);
+		jsonobj.SetIntValue("KillAmount", KillAmount);
+		jsonobj.SetIntValue("TeamKillAmount", TeamKillAmount);
+		jsonobj.SetIntValue("HostageKillAmount", HostageKillAmount);
+		`log("CPICONFIGVARS");
+		`log(class'CPIJsonObject'.static.CPIEncodeJson(jsonobj));
+		`log("CPICONFIGVARS");
+	`endif
+}
